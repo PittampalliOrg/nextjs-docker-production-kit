@@ -1,70 +1,13 @@
-# `version` is now deprecated
-# https://docs.docker.com/compose/compose-file/#version-top-level-element
+# Usage
+#   Start:          docker compose up
+#   With helpers:   docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml up
+#   Stop:           docker compose down
+#   Destroy:        docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
+
+name: supabase
+version: "3.8"
 
 services:
-  next-ts-app:
-    container_name: next-ts-app
-    build:
-      context: ./next-ts-app
-      dockerfile: dev.Dockerfile
-    environment:
-      ENV_VARIABLE: ${ENV_VARIABLE}
-      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ./next-ts-app/src:/app/src
-      - ./next-ts-app/public:/app/public
-      # It's not necessary to sync the `.next` directory
-    depends_on:
-      - db
-    restart: always
-    networks:
-      - my_network
-
-  next-js-app:
-    container_name: next-js-app
-    build:
-      context: ./next-js-app
-      dockerfile: dev.Dockerfile
-    environment:
-      ENV_VARIABLE: ${ENV_VARIABLE}
-      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ./next-js-app/src:/app/src
-      - ./next-js-app/public:/app/public
-      # It's not necessary to sync the `.next` directory
-    depends_on:
-      - db
-    restart: always
-    networks:
-      - my_network
-  nginx:
-    container_name: nginx
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    volumes:
-      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
-      - ./nginx/logs:/var/log/nginx
-    ports:
-      - 80:80
-      - 443:443
-      - 3000:3000
-    depends_on:
-      - next-ts-app
-      - next-js-app
-    restart: always
-    networks:
-      - my_network
   studio:
     container_name: supabase-studio
     image: supabase/studio:20240729-ce42139
@@ -82,7 +25,7 @@ services:
       retries: 3
     depends_on:
       analytics:
-        condition: service_healthy    
+        condition: service_healthy
     environment:
       STUDIO_PG_META_URL: http://meta:8080
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -98,13 +41,11 @@ services:
 
       LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
       LOGFLARE_URL: http://analytics:4000
-      NEXT_PUBLIC_ENABLE_LOGS: "true"
+      NEXT_PUBLIC_ENABLE_LOGS: true
       # Comment to use Big Query backend for analytics
       NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
       # Uncomment to use Big Query backend for analytics
       # NEXT_ANALYTICS_BACKEND_PROVIDER: bigquery
-    networks:
-      - my_network
 
   kong:
     container_name: supabase-kong
@@ -117,7 +58,7 @@ services:
       - ${KONG_HTTPS_PORT}:8443/tcp
     depends_on:
       analytics:
-        condition: service_healthy    
+        condition: service_healthy
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
@@ -132,9 +73,7 @@ services:
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
     volumes:
       # https://github.com/supabase/supabase/issues/12661
-      - ./supabase/volumes/api/kong.yml:/home/kong/temp.yml:ro
-    networks:
-      - my_network      
+      - ./volumes/api/kong.yml:/home/kong/temp.yml:ro
 
   auth:
     container_name: supabase-auth
@@ -158,7 +97,7 @@ services:
       timeout: 5s
       interval: 5s
       retries: 3
-    restart: unless-stopped    
+    restart: unless-stopped
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
@@ -205,8 +144,6 @@ services:
 
       # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED="true"
       # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI="pg-functions://postgres/public/password_verification_attempt"
-    networks:
-      - my_network      
 
 
 
@@ -220,7 +157,7 @@ services:
         condition: service_healthy
       analytics:
         condition: service_healthy
-    restart: unless-stopped    
+    restart: unless-stopped
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
@@ -230,8 +167,6 @@ services:
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
       PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
     command: "postgrest"
-    networks:
-      - my_network    
 
   realtime:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
@@ -259,7 +194,7 @@ services:
       timeout: 5s
       interval: 5s
       retries: 3
-    restart: unless-stopped    
+    restart: unless-stopped
     environment:
       PORT: 4000
       DB_HOST: ${POSTGRES_HOST}
@@ -275,9 +210,7 @@ services:
       DNS_NODES: "''"
       RLIMIT_NOFILE: "10000"
       APP_NAME: realtime
-      SEED_SELF_HOST: "true"
-    networks:
-      - my_network      
+      SEED_SELF_HOST: true
 
   # To use S3 backed storage: docker compose -f docker-compose.yml -f docker-compose.s3.yml up
   storage:
@@ -304,7 +237,7 @@ services:
       timeout: 5s
       interval: 5s
       retries: 3
-    restart: unless-stopped    
+    restart: unless-stopped
     environment:
       ANON_KEY: ${ANON_KEY}
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
@@ -321,9 +254,7 @@ services:
       ENABLE_IMAGE_TRANSFORMATION: "true"
       IMGPROXY_URL: http://imgproxy:5001
     volumes:
-      - ./supabase/volumes/storage:/var/lib/storage:z
-    networks:
-      - my_network      
+      - ./volumes/storage:/var/lib/storage:z
 
   imgproxy:
     container_name: supabase-imgproxy
@@ -332,16 +263,14 @@ services:
       test: [ "CMD", "imgproxy", "health" ]
       timeout: 5s
       interval: 5s
-      retries: 3    
+      retries: 3
     environment:
       IMGPROXY_BIND: ":5001"
       IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
       IMGPROXY_USE_ETAG: "true"
       IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION}
     volumes:
-      - ./supabase/volumes/storage:/var/lib/storage:z
-    networks:
-      - my_network      
+      - ./volumes/storage:/var/lib/storage:z
 
   meta:
     container_name: supabase-meta
@@ -352,7 +281,7 @@ services:
         condition: service_healthy
       analytics:
         condition: service_healthy
-    restart: unless-stopped    
+    restart: unless-stopped
     environment:
       PG_META_PORT: 8080
       PG_META_DB_HOST: ${POSTGRES_HOST}
@@ -360,8 +289,6 @@ services:
       PG_META_DB_NAME: ${POSTGRES_DB}
       PG_META_DB_USER: supabase_admin
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
-    networks:
-      - my_network      
 
   functions:
     container_name: supabase-edge-functions
@@ -369,7 +296,7 @@ services:
     restart: unless-stopped
     depends_on:
       analytics:
-        condition: service_healthy    
+        condition: service_healthy
     environment:
       JWT_SECRET: ${JWT_SECRET}
       SUPABASE_URL: http://kong:8000
@@ -379,13 +306,11 @@ services:
       # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
     volumes:
-      - ./supabase/volumes/functions:/home/deno/functions:Z
+      - ./volumes/functions:/home/deno/functions:Z
     command:
       - start
       - --main-service
       - /home/deno/functions/main
-    networks:
-      - my_network      
 
   analytics:
     container_name: supabase-analytics
@@ -405,7 +330,7 @@ services:
     #   - type: bind
     #     source: ${PWD}/gcloud.json
     #     target: /opt/app/rel/logflare/bin/gcloud.json
-    #     read_only: true    
+    #     read_only: true
     environment:
       LOGFLARE_NODE_HOST: 127.0.0.1
       DB_USERNAME: supabase_admin
@@ -415,8 +340,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_SCHEMA: _analytics
       LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
-      LOGFLARE_SINGLE_TENANT: "true"
-      LOGFLARE_SUPABASE_MODE: "true"
+      LOGFLARE_SINGLE_TENANT: true
+      LOGFLARE_SUPABASE_MODE: true
       LOGFLARE_MIN_CLUSTER_SIZE: 1
 
       # Comment variables to use Big Query backend for analytics
@@ -428,8 +353,6 @@ services:
       # GOOGLE_PROJECT_NUMBER: ${GOOGLE_PROJECT_NUMBER}
     ports:
       - 4000:4000
-    networks:
-      - my_network      
 
   # Comment out everything below this point if you are using an external Postgres database
   db:
@@ -452,7 +375,7 @@ services:
     restart: unless-stopped
     ports:
       # Pass down internal port because it's set dynamically by other services
-      - ${POSTGRES_PORT}:${POSTGRES_PORT}    
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
     environment:
       POSTGRES_HOST: /var/run/postgresql
       PGPORT: ${POSTGRES_PORT}
@@ -464,21 +387,19 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP: ${JWT_EXPIRY}
     volumes:
-      - ./supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
       # Must be superuser to create event trigger
-      - ./supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - ./volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
       # Must be superuser to alter reserved role
-      - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ./volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
       # Initialize the database settings with JWT_SECRET and JWT_EXP
-      - ./supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      - ./volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
       # PGDATA directory is persisted between restarts
-      - ./supabase/volumes/db/data:/var/lib/postgresql/data:Z
+      - ./volumes/db/data:/var/lib/postgresql/data:Z
       # Changes required for Analytics support
-      - ./supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      - ./volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
-    networks:
-      - my_network      
 
   vector:
     container_name: supabase-vector
@@ -498,20 +419,11 @@ services:
       interval: 5s
       retries: 3
     volumes:
-      - ./supabase/volumes/logs/vector.yml:/etc/vector/vector.yml:ro
-      - ${DOCKER_SOCKET_LOCATION}:/var/run/docker.sock:ro    
+      - ./volumes/logs/vector.yml:/etc/vector/vector.yml:ro
+      - ${DOCKER_SOCKET_LOCATION}:/var/run/docker.sock:ro
     environment:
       LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
     command: [ "--config", "etc/vector/vector.yml" ]
-    networks:
-      - my_network    
 
 volumes:
   db-config:
-  # Add more containers below
-
-# Define a network, which allows containers to communicate
-# with each other, by using their container name as a hostname
-networks:
-  my_network:
-    external: true
