@@ -1,9 +1,12 @@
 FROM node:18-alpine
 
+# Define an ARG for the root directory
+ARG ROOT_DIR=.
+
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+COPY ${APP_FOLDER}/package.json ${APP_FOLDER}/yarn.lock* ${APP_FOLDER}/package-lock.json* ${APP_FOLDER}/pnpm-lock.yaml* ./
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
@@ -12,10 +15,7 @@ RUN \
   else echo "Warning: Lockfile not found. It is recommended to commit lockfiles to version control." && yarn install; \
   fi
 
-COPY src ./src
-COPY public ./public
-COPY next.config.js .
-COPY tsconfig.json .
+COPY ${APP_FOLDER} ./src
 
 # Next.js collects completely anonymous telemetry data about general usage. Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line to disable telemetry at run time

@@ -5,22 +5,18 @@ services:
   devcontainer:
     container_name: ${APP_FOLDER}
     build:
-      context: ../${APP_FOLDER}
-      dockerfile: dev.Dockerfile
-    environment:
-      ENV_VARIABLE: ${ENV_VARIABLE}
-      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      context: ..
+      dockerfile: .devcontainer/dev.Dockerfile
+      args:
+        APP_FOLDER: ${APP_FOLDER}
+        PNPM_VERSION: 8.6.12  # Adjust this version as needed
     volumes:
-      - ../${APP_FOLDER}/src:/app/src
-      - ../${APP_FOLDER}/public:/app/public
+      - ../${APP_FOLDER}:/app
+      - /app/node_modules  # This creates an anonymous volume for node_modules
     ports:
-      - 3000:3000
-      # It's not necessary to sync the `.next` directory
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
     depends_on:
       - db
     restart: always
