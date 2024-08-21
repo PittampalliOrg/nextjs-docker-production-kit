@@ -18,6 +18,8 @@ services:
     volumes:
       - ./next-ts-app/src:/app/src
       - ./next-ts-app/public:/app/public
+    ports:
+      - 3000:3000
       # It's not necessary to sync the `.next` directory
     depends_on:
       - db
@@ -44,24 +46,6 @@ services:
       # It's not necessary to sync the `.next` directory
     depends_on:
       - db
-    restart: always
-    networks:
-      - my_network
-  nginx:
-    container_name: nginx
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    volumes:
-      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
-      - ./nginx/logs:/var/log/nginx
-    ports:
-      - 80:80
-      - 443:443
-      - 3000:3000
-    depends_on:
-      - next-ts-app
-      - next-js-app
     restart: always
     networks:
       - my_network
