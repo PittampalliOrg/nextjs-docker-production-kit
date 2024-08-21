@@ -2,10 +2,10 @@
 # https://docs.docker.com/compose/compose-file/#version-top-level-element
 
 services:
-  next-ts-app:
-    container_name: next-ts-app
+  devcontainer:
+    container_name: ${APP_FOLDER}
     build:
-      context: ./next-ts-app
+      context: ../${APP_FOLDER}
       dockerfile: dev.Dockerfile
     environment:
       ENV_VARIABLE: ${ENV_VARIABLE}
@@ -16,8 +16,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./next-ts-app/src:/app/src
-      - ./next-ts-app/public:/app/public
+      - ../${APP_FOLDER}/src:/app/src
+      - ../${APP_FOLDER}/public:/app/public
     ports:
       - 3000:3000
       # It's not necessary to sync the `.next` directory
@@ -27,28 +27,6 @@ services:
     networks:
       - my_network
 
-  next-js-app:
-    container_name: next-js-app
-    build:
-      context: ./next-js-app
-      dockerfile: dev.Dockerfile
-    environment:
-      ENV_VARIABLE: ${ENV_VARIABLE}
-      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ./next-js-app/src:/app/src
-      - ./next-js-app/public:/app/public
-      # It's not necessary to sync the `.next` directory
-    depends_on:
-      - db
-    restart: always
-    networks:
-      - my_network
   studio:
     container_name: supabase-studio
     image: supabase/studio:20240729-ce42139
@@ -116,7 +94,7 @@ services:
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
     volumes:
       # https://github.com/supabase/supabase/issues/12661
-      - ./supabase/volumes/api/kong.yml:/home/kong/temp.yml:ro
+      - ../supabase/volumes/api/kong.yml:/home/kong/temp.yml:ro
     networks:
       - my_network      
 
@@ -305,7 +283,7 @@ services:
       ENABLE_IMAGE_TRANSFORMATION: "true"
       IMGPROXY_URL: http://imgproxy:5001
     volumes:
-      - ./supabase/volumes/storage:/var/lib/storage:z
+      - ../supabase/volumes/storage:/var/lib/storage:z
     networks:
       - my_network      
 
@@ -323,7 +301,7 @@ services:
       IMGPROXY_USE_ETAG: "true"
       IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION}
     volumes:
-      - ./supabase/volumes/storage:/var/lib/storage:z
+      - ../supabase/volumes/storage:/var/lib/storage:z
     networks:
       - my_network      
 
@@ -363,7 +341,7 @@ services:
       # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
     volumes:
-      - ./supabase/volumes/functions:/home/deno/functions:Z
+      - ../supabase/volumes/functions:/home/deno/functions:Z
     command:
       - start
       - --main-service
@@ -448,17 +426,17 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP: ${JWT_EXPIRY}
     volumes:
-      - ./supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - ../supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
       # Must be superuser to create event trigger
-      - ./supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - ../supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
       # Must be superuser to alter reserved role
-      - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ../supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
       # Initialize the database settings with JWT_SECRET and JWT_EXP
-      - ./supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      - ../supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
       # PGDATA directory is persisted between restarts
-      - ./supabase/volumes/db/data:/var/lib/postgresql/data:Z
+      - ../supabase/volumes/db/data:/var/lib/postgresql/data:Z
       # Changes required for Analytics support
-      - ./supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      - ../supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
     networks:
@@ -482,7 +460,7 @@ services:
       interval: 5s
       retries: 3
     volumes:
-      - ./supabase/volumes/logs/vector.yml:/etc/vector/vector.yml:ro
+      - ../supabase/volumes/logs/vector.yml:/etc/vector/vector.yml:ro
       - ${DOCKER_SOCKET_LOCATION}:/var/run/docker.sock:ro    
     environment:
       LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
